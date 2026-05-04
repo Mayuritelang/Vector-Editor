@@ -1,4 +1,4 @@
-import { ref } from "vue"
+import { ref, shallowRef } from "vue"
 import * as fabric from "fabric"
 import { createHistory } from "../utils/history"
 import * as projectService from "../services/projectServices"
@@ -7,7 +7,7 @@ import { useSocket } from "./useSocket"
 
 const { sendCursor, sendCanvas, onCanvasUpdate } = useSocket()
 
-const canvas = ref(null)
+const canvas = shallowRef(null)
 const isDrawingMode = ref(false)
 
 const history = createHistory()
@@ -22,20 +22,17 @@ export function useCanvas() {
   const projectId = route.params.id
 
   // ---------------- RANDOM POSITION ----------------
-
   const randomPos = () => ({
     left: Math.random() * 500,
     top: Math.random() * 300
   })
 
   // ---------------- GET STATE ----------------
-
   const getState = () => {
     return JSON.stringify(canvas.value.toJSON())
   }
 
   // ---------------- SET STATE ----------------
-
   const setState = async (state) => {
 
     if (!canvas.value) return
@@ -63,7 +60,6 @@ export function useCanvas() {
   }
 
   // ---------------- SAVE TO DB ----------------
-
   const debounceSaveToDB = () => {
 
     clearTimeout(saveTimeout)
@@ -71,7 +67,6 @@ export function useCanvas() {
     saveTimeout = setTimeout(async () => {
 
       try {
-        console.log("Saving projectId:", projectId)
         const json = canvas.value.toJSON()
 
         await projectService.updateProject(projectId, {
@@ -86,7 +81,6 @@ export function useCanvas() {
   }
 
   // ---------------- PERSIST STATE ----------------
-
   const persistState = () => {
 
     if (!canvas.value) return
@@ -99,7 +93,6 @@ export function useCanvas() {
   }
 
   // ---------------- SAVE ----------------
-
   const save = () => {
 
     if (!canvas.value) return
@@ -118,7 +111,6 @@ export function useCanvas() {
   }
 
   // ---------------- UNDO ----------------
-
   const undo = async () => {
 
     const prev = history.undo()
@@ -131,7 +123,6 @@ export function useCanvas() {
   }
 
   // ---------------- REDO ----------------
-
   const redo = async () => {
 
     const next = history.redo()
@@ -144,7 +135,6 @@ export function useCanvas() {
   }
 
   // ---------------- KEYBOARD SHORTCUTS ----------------
-
   const handleShortcuts = (e) => {
 
     const key = e.key.toLowerCase()
@@ -168,7 +158,6 @@ export function useCanvas() {
   }
 
   // ---------------- LOAD FROM DB ----------------
-
   const loadCanvasFromDB = async () => {
 
     try {
@@ -179,9 +168,6 @@ export function useCanvas() {
 
       const project =
         await projectService.getProjectById(projectId)
-
-      console.log("PROJECT DATA", project)
-      console.log("CANVAS DATA", project?.canvasData)
 
       if (project?.canvasData) {
 
@@ -195,12 +181,35 @@ export function useCanvas() {
         canvas.value.renderAll()
         canvas.value.requestRenderAll()
         canvas.value.calcOffset()
-
-        console.log(
-          "Loaded objects:",
-          canvas.value.getObjects()
-        )
       }
+
+      canvas.value.forEachObject((obj) => {
+
+        obj.set({
+          selectable: true,
+          evented: true,
+          hasControls: true,
+          hasBorders: true,
+          lockScalingX: false,
+          lockScalingY: false,
+          lockRotation: false,
+        })
+
+        // IMPORTANT
+        obj.setControlsVisibility({
+          mt: true,
+          mb: true,
+          ml: true,
+          mr: true,
+          tl: true,
+          tr: true,
+          bl: true,
+          br: true,
+          mtr: true,
+        })
+
+        obj.setCoords()
+      })
 
     } catch (err) {
       console.error("Load failed:", err)
@@ -210,7 +219,6 @@ export function useCanvas() {
   }
 
   // ---------------- INIT CANVAS ----------------
-
   const initCanvas = async (el) => {
 
     try {
@@ -218,7 +226,19 @@ export function useCanvas() {
       canvas.value = new fabric.Canvas(el, {
         width: 900,
         height: 600,
-        backgroundColor: "#fff"
+        backgroundColor: "#fff",
+        selection: true
+      })
+
+      fabric.Object.prototype.set({
+        transparentCorners: false,
+        cornerColor: "blue",
+        cornerStyle: "circle",
+        cornerSize: 12,
+        borderColor: "blue",
+        hasControls: true,
+        hasBorders: true,
+        selectable: true,
       })
 
       document.addEventListener(
@@ -232,10 +252,7 @@ export function useCanvas() {
 
       history.init(getState())
 
-      // SAVE EVENTS
-
       // OBJECT ADDED
-
       canvas.value.on("object:added", () => {
 
         if (isRestoring) return
@@ -244,7 +261,6 @@ export function useCanvas() {
       })
 
       // OBJECT REMOVED
-
       canvas.value.on("object:removed", () => {
 
         if (isRestoring) return
@@ -253,6 +269,12 @@ export function useCanvas() {
       })
 
       // AFTER MOVE / ROTATE / SCALE COMPLETE
+      canvas.value.on("object:modified", () => {
+
+        if (isRestoring) return
+
+        save()
+      })
 
       canvas.value.on("mouse:up", () => {
 
@@ -267,7 +289,6 @@ export function useCanvas() {
       })
 
       // CURSOR
-
       canvas.value.on("mouse:move", (opt) => {
 
         if (!opt.e) return
@@ -282,12 +303,13 @@ export function useCanvas() {
       })
 
       // SOCKET UPDATE
-
       onCanvasUpdate(async (data) => {
 
         if (!hasLoaded) return
-
         if (isRestoring) return
+
+        const active = canvas.value.getActiveObject()
+        if (active) return
 
         await setState(data)
       })
@@ -298,7 +320,6 @@ export function useCanvas() {
   }
 
   // ---------------- EXPORT JSON ----------------
-
   const saveJSON = () => {
 
     const data = JSON.stringify(
@@ -322,7 +343,6 @@ export function useCanvas() {
   }
 
   // ---------------- IMPORT JSON ----------------
-
   const loadJSON = (event) => {
 
     const file = event.target.files[0]
@@ -343,6 +363,7 @@ export function useCanvas() {
     }
 
     reader.readAsText(file)
+
   }
 
   const importSVG = async (event) => {
@@ -398,7 +419,6 @@ export function useCanvas() {
   }
 
   // ---------------- SHAPES ----------------
-
   const addRect = () => {
 
     canvas.value.add(
@@ -406,10 +426,16 @@ export function useCanvas() {
         width: 100,
         height: 100,
         fill: "blue",
+        selectable: true,
+        evented: true,
         hasControls: true,
-        centeredRotation: true,
+        hasBorders: true,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false,
         ...randomPos()
       })
+
     )
   }
 
@@ -419,8 +445,13 @@ export function useCanvas() {
       new fabric.Circle({
         radius: 50,
         fill: "green",
+        selectable: true,
+        evented: true,
         hasControls: true,
-        centeredRotation: true,
+        hasBorders: true,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false,
         ...randomPos()
       })
     )
@@ -433,15 +464,19 @@ export function useCanvas() {
         width: 100,
         height: 100,
         fill: "red",
+        selectable: true,
+        evented: true,
         hasControls: true,
-        centeredRotation: true,
+        hasBorders: true,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false,
         ...randomPos()
       })
     )
   }
 
   // ---------------- DELETE ----------------
-
   const deleteSelected = () => {
 
     const obj = canvas.value.getActiveObject()
@@ -452,7 +487,6 @@ export function useCanvas() {
   }
 
   // ---------------- BRUSH ----------------
-
   const toggleBrush = () => {
 
     isDrawingMode.value =
@@ -481,25 +515,24 @@ export function useCanvas() {
   }
 
   // ---------------- ROTATE ----------------
-const rotateSelected = () => {
+  const rotateSelected = () => {
 
-  const obj =
-    canvas.value.getActiveObject()
+    const obj =
+      canvas.value.getActiveObject()
 
-  if (!obj) return
+    if (!obj) return
 
-  obj.rotate((obj.angle || 0) + 15)
+    obj.rotate((obj.angle || 0) + 15)
 
-  obj.setCoords()
+    obj.setCoords()
 
-  canvas.value.renderAll()
-  canvas.value.requestRenderAll()
+    canvas.value.renderAll()
+    canvas.value.requestRenderAll()
 
-  save()
-}
+    save()
+  }
 
   // ---------------- RETURN ----------------
-
   return {
     canvas,
     initCanvas,
