@@ -1,0 +1,10 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
