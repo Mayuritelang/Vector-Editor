@@ -2,10 +2,19 @@
 import { onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import { useProjects } from "../composables/useProject.js"
+import { useAuth } from "../composables/useAuth"
 
 const router = useRouter()
 
-const { projects, fetchProjects, createProject, deleteProject, updateProject } = useProjects()
+const { logout } = useAuth()
+
+const {
+  projects,
+  fetchProjects,
+  createProject,
+  deleteProject,
+  updateProject
+} = useProjects()
 
 const newProjectName = ref("")
 
@@ -17,11 +26,20 @@ const openProject = (id) => {
   router.push(`/editor/${id}`)
 }
 
+const handleLogout = () => {
+
+  logout()
+
+  router.push("/")
+}
+
 // CREATE
 const handleCreate = async () => {
+
   if (!newProjectName.value.trim()) return
 
   await createProject(newProjectName.value)
+
   newProjectName.value = ""
 
   fetchProjects()
@@ -29,17 +47,24 @@ const handleCreate = async () => {
 
 // DELETE
 const handleDelete = async (id) => {
+
   await deleteProject(id)
+
   fetchProjects()
 }
 
 // RENAME
 const handleRename = async (project) => {
-  const newName = prompt("Enter new name", project.name)
+
+  const newName =
+    prompt("Enter new name", project.name)
 
   if (!newName) return
 
-  await updateProject(project._id, { name: newName })
+  await updateProject(project._id, {
+    name: newName
+  })
+
   fetchProjects()
 }
 </script>
@@ -65,6 +90,12 @@ const handleRename = async (project) => {
         <button @click="handleCreate">
           + Create Project
         </button>
+        <button
+  class="logout-btn"
+  @click="handleLogout"
+>
+  Logout
+</button>
       </div>
 
     </div>
@@ -228,8 +259,22 @@ const handleRename = async (project) => {
   }
 }
 
-/* EMPTY */
+.logout-btn {
+  border: none;
+  background: #ef4444;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
 
+  &:hover {
+    background: #dc2626;
+  }
+}
+
+/* EMPTY */
 .empty {
   text-align: center;
   margin-top: 5rem;

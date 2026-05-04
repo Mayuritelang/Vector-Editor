@@ -11,6 +11,15 @@
       <button @click="addRect">Rect</button>
       <button @click="addCircle">Circle</button>
       <button @click="addTriangle">Triangle</button>
+      <label class="svg-upload-btn">
+  SVG
+  <input
+    type="file"
+    accept=".svg"
+    @change="handleSVGUpload"
+    hidden
+  />
+</label>
 
       <button @click="toggleBrush">
         {{ isDrawingMode ? "Disable Brush" : "Brush" }}
@@ -50,11 +59,16 @@ const {
   isDrawingMode,
   rotateSelected,
   saveJSON,
-loadJSON
+loadJSON,
+importSVG
 } = useCanvas()
 
 const handleBrushSize = (e) => {
   changeBrushSize(Number(e.target.value))
+}
+
+const handleSVGUpload = (e) => {
+  importSVG(e)
 }
 </script>
 
@@ -131,6 +145,21 @@ const handleBrushSize = (e) => {
 
 .toolbar button:last-child:hover {
   background: #dc2626;
+  color: white;
+}
+
+.svg-upload-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fef3c7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.svg-upload-btn:hover {
+  background: #f59e0b;
   color: white;
 }
 </style>
