@@ -514,23 +514,6 @@ export function useCanvas() {
     }
   }
 
-  // ---------------- ROTATE ----------------
-  const rotateSelected = () => {
-
-    const obj =
-      canvas.value.getActiveObject()
-
-    if (!obj) return
-
-    obj.rotate((obj.angle || 0) + 15)
-
-    obj.setCoords()
-
-    canvas.value.renderAll()
-    canvas.value.requestRenderAll()
-
-    save()
-  }
 
   // ---------------- RETURN ----------------
   return {
@@ -545,7 +528,6 @@ export function useCanvas() {
     toggleBrush,
     changeBrushSize,
     isDrawingMode,
-    rotateSelected,
     saveJSON,
     loadJSON,
     importSVG,

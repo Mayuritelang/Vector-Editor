@@ -37,7 +37,6 @@
 
       <button @click="undo">Undo</button>
       <button @click="redo">Redo</button>
-      <button @click="rotateSelected">Rotate</button>
       <button @click="deleteSelected">Delete</button>
     </div>
 
@@ -57,7 +56,6 @@ const {
   toggleBrush,
   changeBrushSize,
   isDrawingMode,
-  rotateSelected,
   saveJSON,
 loadJSON,
 importSVG
